@@ -1,5 +1,160 @@
 --Rutinas de programación
 
+--Mantenimiento de la tabla bienes
+--DROP PROCEDURE insert_bien(character varying,real,character varying,compras.tipo_bien);
+create or replace procedure insert_bien(nombre varchar(60), cant real, unidad varchar(30), tipp compras.tipo_bien )
+as $$
+declare
+begin 
+	insert into compras.bien
+	values
+		(default, nombre, can, unidad, tipp);
+end;
+$$ LANGUAGE PLPGSQL;
+
+create or replace procedure delete_bien( idbien int )
+as $$
+declare
+begin 
+	delete from compras.bien where id_bien = idbien;
+end;
+$$ LANGUAGE PLPGSQL;
+
+create or replace procedure update_bien(idbien int, nombre varchar(60), cant real, unidad varchar(30), tipp compras.tipo_bien )
+as $$
+declare
+begin 
+	update compras.bien
+	set nombre_bien = nombre,
+		cantidad = cant,
+		unidad_medida = unidad,
+		tipo = tipp
+	where id_bien = idbien;
+		
+end;
+$$ LANGUAGE PLPGSQL;
+
+--Dado un ID de orden contractual, mostrar los bienes vinculadas a este.
+
+select ocd.id_orden_c, oc.numero_factura_proveedor, b.nombre_bien, b.tipo 
+from compras.orden_contractual_deta ocd
+inner join compras.orden_contractual oc
+	on oc.id_orden_c = ocd.id_orden_c
+inner join compras.bien b 
+	on ocd.id_bien = b.id_bien
+where ocd.id_orden_c = $orden_contractual;
+
+--PROCEDIMIENTO
+--Listar los centros de costo de los que un empleado es responsable
+
+create or replace procedure listar_centros_costo_emp(idemp int)
+as $$
+declare
+	cur cursor for select * from rrhh.responsable_centros_costo where id_emp = idemp;
+	rec record;
+	rec_area record;
+	nombres rrhh.empleado.nombres_emp%type;
+begin
+	open cur;
+	fetch cur into rec;
+	select nombres_emp into nombres
+		from rrhh.empleado
+		where id_emp = rec.id_emp;
+	
+	raise notice '%', nombres;
+	
+	loop
+		select * into rec_area
+			from rrhh."area" a
+		where a.id_area = rec.id_area;
+	
+		raise notice '% - %', rec_area.nombre_area, rec_area.centro_costo;
+		fetch cur into rec;
+		exit when not found;
+	end loop;
+	close cur;
+end;
+$$ LANGUAGE PLPGSQL;
+
+call listar_centros_costo_emp(1);
+
+
+------------------------
+
+create or replace function calc_costo_total_soli(idsoli int)
+returns real
+as $$
+declare
+	total real;
+	cur cursor for select * 
+		from compras.solicitud_deta sd
+		where sd.id_solicitud = idsoli;
+	rec record;
+begin
+	total := 0;
+
+	open cur;
+	loop
+		fetch cur into rec;
+		exit when not found;
+		--raise notice 'total: %', total;
+		--raise notice 'cant: % - unitario: %', rec.cantidad, rec.valor_unitario;
+		total := total + (rec.cantidad * rec.valor_unitario);
+		--raise notice 'total fetch: %', total;
+	end loop;
+	close cur;
+	--raise notice '%', total;
+	return total;
+end;
+$$ language plpgsql;
+
+select * from calc_costo_total_soli(4);
+
+
+create table if not exists rrhh.log_responsable_centros_costo(
+	id_log serial not null primary key,
+	id_emp int not null references rrhh.empleado,
+	id_area int not null references rrhh."area",
+	accion varchar(20),
+	fecha timestamp
+);
+---- ##########################
+create or replace FUNCTION trigger_log_responsable_centros_costo() 
+   RETURNS TRIGGER 
+   LANGUAGE PLPGSQL
+AS $$
+BEGIN
+	IF (TG_OP='INSERT' OR TG_OP='UPDATE') THEN
+        INSERT INTO rrhh.log_responsable_centros_costo
+        VALUES /* Registramos en Log los valores nuevos */
+		( default,
+		NEW.id_emp,
+		NEW.id_area,
+		TG_OP,
+		CURRENT_TIMESTAMP );
+        RETURN NEW;
+    END IF;
+    IF (TG_OP='DELETE') THEN
+        INSERT INTO rrhh.log_responsable_centros_costo
+    VALUES /* Registramos en Log los valores eliminados */
+		( default,
+		OLD.id_emp,
+		OLD.id_area,
+		TG_OP,
+		CURRENT_TIMESTAMP );
+		RETURN OLD;
+    END IF;
+END;
+$$;
+
+CREATE TRIGGER log_responsable_centros_costo
+  AFTER INSERT OR UPDATE OR DELETE
+  ON rrhh.responsable_centros_costo
+  FOR EACH ROW
+  EXECUTE PROCEDURE trigger_log_responsable_centros_costo();
+
+-------------
+
 select e.nombres_emp, count(a.centro_costo) as n_centros_costo
 	from  rrhh.empleado e
 	inner join rrhh.responsable_centros_costo rcc 
@@ -205,7 +360,7 @@ CREATE TABLE almacen.log_proveedor /* Tabla LOG de clientes */
 
 /* PARTE 1 : CREAR LA FUNCION DE TRIGGER :
    USAR� LA VARIABLE TG_OP PARA CAPTURAR EL EVENTO A EJECUTAR */
-CREATE OR REPLACE FUNCTION tg_log_proveedor() RETURNS TRIGGER AS
+CREATE OR REPLACE FUNCTION almacen.tg_log_proveedor() RETURNS TRIGGER AS
 $BODY$
 BEGIN
     IF (TG_OP='INSERT' OR TG_OP='UPDATE') THEN
@@ -231,8 +386,8 @@ $BODY$ LANGUAGE 'plpgsql';
 
 
 /* PARTE 2 : CREA EL TRIGGER VINCULADO A LA TABLA Y FUNCION */
-CREATE TRIGGER tg_log AFTER INSERT OR UPDATE OR DELETE
-ON  almacen.proveedor FOR EACH ROW EXECUTE PROCEDURE tg_log_proveedor()
+CREATE TRIGGER tg_log_proveedor AFTER INSERT OR UPDATE OR DELETE
+ON  almacen.proveedor FOR EACH ROW EXECUTE PROCEDURE almacen.tg_log_proveedor();
 
 select * from almacen.proveedor p;
 select * from compras.orden_contractual;
