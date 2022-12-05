@@ -152,6 +152,89 @@ CREATE TRIGGER log_responsable_centros_costo
   ON rrhh.responsable_centros_costo
   FOR EACH ROW
   EXECUTE PROCEDURE trigger_log_responsable_centros_costo();
+ 
+-- Reporte cursor simple
+--drop procedure public.reporte_bien;
+create or replace procedure compras.reporte_bien(idbien int)
+as $$
+declare
+	cur cursor for select b.nombre_bien, b.unidad_medida, b.tipo, ocd.id_orden_c, e.id_entrada, a.nombre_area
+		from compras.bien b
+		inner join compras.orden_contractual_deta ocd
+			on b.id_bien = ocd.id_bien
+		inner join almacen.entrada e 
+			on e.id_orden_cd = ocd.id_orden_cd
+		inner join inventario.mov_bien mb
+			on mb.id_bien = b.id_bien
+		inner join rrhh."area" a
+			on a.id_area = mb.id_area 
+		where b.id_bien = idbien;
+	rec record;
+begin
+	open cur;
+	fetch cur into rec;
+	raise notice 'Nombre:			%', rec.nombre_bien;
+	raise notice 'Unidad medida:	%', rec.unidad_medida;
+	raise notice 'Tipo:			%', rec.tipo;
+	
+	raise notice 'Orden compra:	%', rec.id_orden_c;
+	raise notice 'Entrada:		%', rec.id_entrada;
+	raise notice 'Area:			%', rec.nombre_area;
+	
+	loop
+		
+		fetch cur into rec;
+		exit when not found;
+		
+		raise notice 'Orden compra:	%', rec.id_orden_c;
+		raise notice 'Entrada:		%', rec.id_entrada;
+		raise notice 'Area:			%', rec.nombre_area;
+	end loop;
+	
+end;
+$$ language plpgsql;
+
+call compras.reporte_bien(2);
+
+
+create or replace procedure datos_range_soli(ini int, fin int)
+as $$
+declare
+	tem int;
+	rec record;
+	rec2 record;
+begin
+	if ini > fin then
+		tem := ini;
+		ini := fin;
+		fin := tem;
+	end if;
+
+	tem := ini;
+
+	FOR rec in
+	SELECT *
+	FROM compras.orden_contractual_deta ocd
+	where ocd.id_solicitud = tem
+	loop
+		if tem > fin then 
+			exit;
+		end if;
+		raise notice 'Orden contractual: %', rec.id_orden_c;
+	
+		for rec2 in
+		select nombre_bien
+		from compras.bien b
+		where b.id_bien = rec.id_bien
+		loop 
+			raise notice 'Bien: %', rec2.nombre_bien;
+		end loop;
+		tem := tem + 1;
+	END LOOP;
+end;
+$$ language plpgsql;
+
+call datos_range_soli(2,2);
 
 -------------
 
