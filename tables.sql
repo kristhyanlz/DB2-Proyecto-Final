@@ -58,7 +58,8 @@ create table almacen.Proveedor(
 CREATE TABLE compras.rubro_presupuestal(
 	id_rp serial NOT NULL PRIMARY KEY,
 	nombre varchar(50),
-	monto real
+	monto real,
+	monto_disponible real check (monto_disponible <= monto)
 );
 
 CREATE TABLE compras.solicitud(
@@ -93,7 +94,10 @@ CREATE TABLE compras.orden_contractual(-- También llamado ORDEN DE COMPRA
 	observaciones varchar(200)
 );
 
+
+
 CREATE TABLE compras.orden_contractual_deta(
+	id_orden_cd serial not null primary key,
 	id_orden_c int NOT NULL REFERENCES compras.orden_contractual,
 	id_solicitud int NOT NULL,
 	id_bien int NOT NULL,
@@ -106,17 +110,19 @@ CREATE TABLE compras.orden_contractual_deta(
 create table inventario.mov_bien(
 	id_mov serial not null primary key,
 	id_bien int NOT NULL REFERENCES compras.bien,
-	id_emp int not null references rrhh.empleado,
+	id_emp int references rrhh.empleado,
 	fecha_entrega date,
 	id_area int references rrhh."area"
 );
 
+--ALTER TABLE inventario.mov_bien ALTER COLUMN id_emp DROP NOT NULL;
+
 create table almacen.entrada(
 	id_entrega int not null primary key,
-	id_orden_c int not null references compras.orden_contractual,
-	id_bien int NOT NULL REFERENCES compras.bien,
+	id_orden_cd int not null references compras.orden_contractual_deta,
 	cantidad_entregada real not null,
-	fecha_entrega timestamp not NULL DEFAULT now()
+	fecha_entrega timestamp not NULL DEFAULT now(),
+	id_bien int NOT NULL REFERENCES compras.bien
 );	
 
 create table almacen.salida(
