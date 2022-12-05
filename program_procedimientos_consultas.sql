@@ -118,7 +118,8 @@ create table if not exists rrhh.log_responsable_centros_costo(
 	accion varchar(20),
 	fecha timestamp
 );
----- ##########################
+
+
 create or replace FUNCTION trigger_log_responsable_centros_costo() 
    RETURNS TRIGGER 
    LANGUAGE PLPGSQL
@@ -236,7 +237,7 @@ $$ language plpgsql;
 
 call datos_range_soli(2,2);
 
--------------
+------------- ###########################################################################
 
 select e.nombres_emp, count(a.centro_costo) as n_centros_costo
 	from  rrhh.empleado e
