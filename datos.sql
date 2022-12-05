@@ -54,10 +54,11 @@ begin
 end;
 $$ language plpgsql;
 
+
+
 update rrhh.empleado
 	set id_jefe = 4
 	where id_emp = 6;
-
 
 	
 insert into rrhh.responsable_centros_costo
@@ -83,8 +84,8 @@ values
 	(19, 2),
 	(20, 2);
 
-truncate table compras.bien cascade;
-ALTER SEQUENCE compras.bien_id_bien_seq RESTART WITH 1;
+--truncate table compras.bien cascade;
+--ALTER SEQUENCE compras.bien_id_bien_seq RESTART WITH 1;
 
 INSERT INTO compras.bien
 VALUES 
@@ -128,21 +129,6 @@ values
 	(default, '21-1243365', '89289 Ridge Oak Point', 'Meevee');
 
 
-create or replace FUNCTION trigger_insert_rubro_presupuestal_montos() 
-   RETURNS TRIGGER 
-   LANGUAGE PLPGSQL
-AS $$
-BEGIN
-  new.monto_disponible := new.monto;
-  return new;
-END;
-$$
-
-CREATE TRIGGER igualar_montos
-  BEFORE insert
-  ON compras.rubro_presupuestal
-  FOR EACH ROW
-  EXECUTE PROCEDURE trigger_insert_rubro_presupuestal_montos();
 
 insert into compras.rubro_presupuestal
 values
@@ -152,29 +138,29 @@ values
 	(default, 'varios', 3000);
 --ALTER SEQUENCE compras.rubro_presupuestal_id_rp_seq RESTART WITH 5;
 
-select * from now();
+--select * from now();
 
 insert into compras.solicitud
 values
-	(default, '2021-06-25', 16, 1, 3, 3, true),
-	(default, '2021-08-06', 3, 1, 3, 1, true),
-	(default, '2021-02-21', 16, 5, 2, 1, true),
-	(default, '2021-09-22', 18, 5, 4, 2, false),
-	(default, '2021-09-25', 8, 1, 2, 3, true),
-	(default, '2021-06-25', 8, 4, 2, 3, false),
-	(default, '2021-03-13', 17, 5, 1, 3, true),
-	(default, '2021-11-16', 7, 5, 1, 2, true),
-	(default, '2021-11-13', 16, 4, 4, 2, true),
-	(default, '2021-07-01', 13, 2, 4, 4, true),
-	(default, '2021-04-01', 12, 5, 1, 1, true),
-	(default, '2021-03-09', 17, 3, 1, 4, true),
-	(default, '2021-04-01', 18, 3, 1, 4, true),
-	(default, '2021-03-05', 14, 3, 4, 2, true),
-	(default, '2021-06-09', 8, 1, 3, 1, true),
-	(default, '2021-12-13', 10, 5, 1, 4, true),
+	(default, '2021-06-25', 1, 5, 3, 3, true),
+	(default, '2021-08-06', 2, 5, 3, 1, true),
+	(default, '2021-02-21', 3, 1, 2, 1, true),
+	(default, '2021-09-22', 4, 4, 4, 2, false),
+	(default, '2021-09-25', 5, 5, 2, 3, true),
+	(default, '2021-06-25', 6, 3, 2, 3, false),
+	(default, '2021-03-13', 7, 4, 1, 3, true),
+	(default, '2021-11-16', 8, 5, 1, 2, true),
+	(default, '2021-11-13', 9, 1, 4, 2, true),
+	(default, '2021-07-01', 10, 4, 4, 4, true),
+	(default, '2021-04-01', 10, 4, 1, 1, true),
+	(default, '2021-03-09', 2, 5, 1, 4, true),
+	(default, '2021-04-01', 4, 4, 1, 4, true),
+	(default, '2021-03-05', 6, 3, 4, 2, true),
+	(default, '2021-06-09', 7, 4, 3, 1, true),
+	(default, '2021-12-13', 10, 4, 1, 4, true),
 	(default, '2021-12-15', 4, 4, 3, 1, true),
-	(default, '2021-09-30', 12, 2, 3, 1, true),
-	(default, '2021-06-24', 14, 2, 1, 4, true),
+	(default, '2021-09-30', 7, 4, 3, 1, true),
+	(default, '2021-06-24', 2, 5, 1, 4, true),
 	(default, '2021-07-24', 3, 1, 2, 2, false);
 
 
@@ -219,32 +205,6 @@ values
 	(default, 9, false, '2021-03-19', null, '3558111576531110', 'terrestre', 'convencional', 'gratis', null),
 	(default, 10, false, '2021-12-19', now(), '5602214266338365', 'aereo', 'convencional', 'gratis', null);
 
-create or replace FUNCTION trigger_contrato_deta_validados() 
-   RETURNS TRIGGER 
-   LANGUAGE PLPGSQL
-AS $$
-declare
-	rec record;
-BEGIN
-	select * into rec
-	from compras.solicitud s
-	where s.id_solicitud = new.id_solicitud;
-
-	raise notice '%', rec.autorizacion_director_financiero;
-
-	if rec.autorizacion_director_financiero = false then
-		return null;
-	end if;
-
-	return new;
-END;
-$$
-
-CREATE TRIGGER aceptar_contratos_deta_validados
-  BEFORE insert
-  ON compras.orden_contractual_deta
-  FOR EACH ROW
-  EXECUTE PROCEDURE trigger_contrato_deta_validados();
 
 insert into compras.orden_contractual_deta
 values
@@ -257,29 +217,23 @@ values
 	(default, 6, 9, 21, 23, 128.25);
 	
 
-create or replace FUNCTION trigger_entrada_inventario() 
-   RETURNS TRIGGER 
-   LANGUAGE PLPGSQL
-AS $$
-declare
-area_almacen int;
-begin
-	select a.id_area  into area_almacen from rrhh."area" a where nombre_area = 'almacen';
-
-	insert into inventario.mov_bien
-	values
-		(default, new.id_bien, null, now(), area_almacen);
-	
-	return new;
-END;
-$$
-
-CREATE TRIGGER entrada_inventario
-  BEFORE insert
-  ON almacen.entrada
-  FOR EACH ROW
-  EXECUTE PROCEDURE trigger_entrada_inventario();
  
 insert into almacen.entrada
 values
+	(default, 2, 65, default),
+	(default, 3, 3, default),
+	(default, 4, 8, default),
+	(default, 5, 1, default),
+	(default, 6, 1, default),
+	(default, 7, 23, default);
 
+
+  
+ insert into almacen.salida 
+ values
+	(default, 1, 5, now(), now(), 5, 20),
+	(default, 3, 7, now(), now(), 4, 2),
+	(default, 1, 1, now(), now(), 4, 15),
+	(default, 4, 3, now(), now(), 4, 1),
+	(default, 1, 8, now(), now(), 3, 2),
+	(default, 4, 17, now(), now(), 3,99999);

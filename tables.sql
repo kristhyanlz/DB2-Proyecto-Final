@@ -65,11 +65,13 @@ CREATE TABLE compras.rubro_presupuestal(
 CREATE TABLE compras.solicitud(
 	id_solicitud serial NOT NULL PRIMARY KEY,
 	fecha date NOT NULL,
-	responsable int NOT NULL REFERENCES rrhh.empleado,
-	id_centro_costo int NOT NULL REFERENCES rrhh."area",
+	responsable int NOT null,-- REFERENCES rrhh.empleado,
+	id_centro_costo int NOT null,-- REFERENCES rrhh."area",
 	id_rp int NOT NULL REFERENCES compras.rubro_presupuestal,
 	autorizacion_jefe_area int REFERENCES rrhh.empleado,
-	autorizacion_director_financiero boolean DEFAULT FALSE
+	autorizacion_director_financiero boolean DEFAULT false,
+	
+	foreign key (responsable, id_centro_costo) references rrhh.responsable_centros_costo
 );
 
 CREATE TABLE compras.solicitud_deta(
@@ -112,17 +114,17 @@ create table inventario.mov_bien(
 	id_bien int NOT NULL REFERENCES compras.bien,
 	id_emp int references rrhh.empleado,
 	fecha_entrega date,
-	id_area int references rrhh."area"
+	id_area int references rrhh."area",
+	cantidad real not null
 );
 
 --ALTER TABLE inventario.mov_bien ALTER COLUMN id_emp DROP NOT NULL;
 
 create table almacen.entrada(
-	id_entrega int not null primary key,
+	id_entrada serial not null primary key,
 	id_orden_cd int not null references compras.orden_contractual_deta,
 	cantidad_entregada real not null,
-	fecha_entrega timestamp not NULL DEFAULT now(),
-	id_bien int NOT NULL REFERENCES compras.bien
+	fecha_entrega timestamp not NULL DEFAULT now()
 );	
 
 create table almacen.salida(
@@ -130,10 +132,7 @@ create table almacen.salida(
 	id_entrada int not null references almacen.entrada,
 	empleado_responsable int not NULL REFERENCES rrhh.empleado,
 	fecha_salida timestamp not null,
-	fecha_entrega timestamp
+	fecha_entrega timestamp,
+	id_area int references rrhh."area",
+	cantidad real not null
 );
-
-
---NORMALIZACION
---Factura no se realiza
---Solo guardamos el número de factura del proveedor
