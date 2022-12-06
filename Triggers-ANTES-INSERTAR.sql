@@ -76,7 +76,9 @@ CREATE TRIGGER entrada_inventario
   FOR EACH ROW
   EXECUTE PROCEDURE trigger_entrada_inventario();
 
- ----------------
+ 
+ 
+-----------------
  
  
 create or replace FUNCTION trigger_check_cant_salida() 

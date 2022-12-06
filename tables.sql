@@ -1,17 +1,3 @@
-/*
-Host:
-ec2-34-230-153-41.compute-1.amazonaws.com
-
-Database:
-daf88jptjtitas
-
-User:
-vesvtvuzpjdlrk
-
-Passwd:
-84b8a4b4e048c06e1b1cfcf2245fb58fa74ac936d722d2744199ab0e8510847b
-*/
-
 create schema rrhh;
 create schema compras;
 CREATE SCHEMA almacen;
